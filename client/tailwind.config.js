@@ -1,16 +1,16 @@
 /** @type {import('tailwindcss').Config} */
 export default {
-  darkMode: ['class'],
   content: ['./index.html', './src/**/*.{js,jsx}'],
   theme: {
     container: {
       center: true,
-      padding: '1rem',
-      screens: { '2xl': '1280px' },
+      padding: { DEFAULT: '1.25rem', lg: '2rem' },
+      screens: { '2xl': '1400px' },
     },
     extend: {
       colors: {
-        border: 'hsl(var(--border))',
+        border: 'hsl(var(--border-soft))',
+        'border-strong': 'hsl(var(--border))',
         input: 'hsl(var(--input))',
         ring: 'hsl(var(--ring))',
         background: 'hsl(var(--background))',
@@ -40,10 +40,20 @@ export default {
           foreground: 'hsl(var(--card-foreground))',
         },
       },
+      fontFamily: {
+        sans: ['Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+        display: ['Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+        mono: ['"JetBrains Mono"', 'ui-monospace', 'SFMono-Regular', 'monospace'],
+      },
       borderRadius: {
-        lg: 'var(--radius)',
-        md: 'calc(var(--radius) - 2px)',
-        sm: 'calc(var(--radius) - 4px)',
+        none: '0',
+        sm: '2px',
+        DEFAULT: '2px',
+        md: '3px',
+        lg: '4px',
+      },
+      letterSpacing: {
+        tightest: '-0.05em',
       },
     },
   },

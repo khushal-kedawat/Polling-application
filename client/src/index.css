@@ -4,51 +4,103 @@
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222 47% 11%;
+    /* Conductor-inspired: warm cream, deep navy, electric blue */
+    --background: 40 25% 94%;
+    --foreground: 230 55% 9%;
     --card: 0 0% 100%;
-    --card-foreground: 222 47% 11%;
-    --primary: 240 70% 55%;
+    --card-foreground: 230 55% 9%;
+    --primary: 226 100% 55%;
     --primary-foreground: 0 0% 100%;
-    --secondary: 220 14% 96%;
-    --secondary-foreground: 222 47% 11%;
-    --muted: 220 14% 96%;
-    --muted-foreground: 215 16% 47%;
-    --accent: 220 14% 96%;
-    --accent-foreground: 222 47% 11%;
-    --destructive: 0 84% 60%;
+    --secondary: 40 18% 89%;
+    --secondary-foreground: 230 55% 9%;
+    --muted: 40 18% 89%;
+    --muted-foreground: 230 12% 35%;
+    --accent: 40 18% 89%;
+    --accent-foreground: 230 55% 9%;
+    --destructive: 0 75% 50%;
     --destructive-foreground: 0 0% 100%;
-    --border: 220 13% 91%;
-    --input: 220 13% 91%;
-    --ring: 240 70% 55%;
-    --radius: 0.6rem;
-  }
-
-  .dark {
-    --background: 222 47% 8%;
-    --foreground: 210 40% 98%;
-    --card: 222 47% 10%;
-    --card-foreground: 210 40% 98%;
-    --primary: 240 70% 65%;
-    --primary-foreground: 222 47% 11%;
-    --secondary: 217 33% 17%;
-    --secondary-foreground: 210 40% 98%;
-    --muted: 217 33% 17%;
-    --muted-foreground: 215 20% 65%;
-    --accent: 217 33% 17%;
-    --accent-foreground: 210 40% 98%;
-    --destructive: 0 62% 45%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 217 33% 22%;
-    --input: 217 33% 22%;
-    --ring: 240 70% 65%;
+    --border: 230 25% 18%;
+    --border-soft: 40 12% 82%;
+    --input: 230 25% 18%;
+    --ring: 226 100% 55%;
+    --radius: 0.125rem;
   }
 
   * {
-    @apply border-border;
+    border-color: hsl(var(--border-soft));
   }
+
+  html,
   body {
     @apply bg-background text-foreground antialiased;
-    font-family: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+    font-family: 'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+    font-feature-settings: 'ss01', 'cv11';
+  }
+
+  ::selection {
+    background-color: hsl(var(--primary));
+    color: hsl(var(--primary-foreground));
+  }
+}
+
+@layer components {
+  .font-display {
+    font-family: 'Inter', ui-sans-serif, system-ui, sans-serif;
+    font-weight: 800;
+    letter-spacing: -0.04em;
+  }
+
+  .font-mono {
+    font-family: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+  }
+
+  .mono-label {
+    @apply font-mono text-xs uppercase tracking-wider text-muted-foreground;
+  }
+
+  /* Subtle grid backdrop for hero / section dividers */
+  .grid-backdrop {
+    background-image:
+      linear-gradient(to right, hsl(230 25% 18% / 0.08) 1px, transparent 1px),
+      linear-gradient(to bottom, hsl(230 25% 18% / 0.08) 1px, transparent 1px);
+    background-size: 48px 48px;
+  }
+
+  /* Corner-bracketed buttons / cards — fake "engineered" look */
+  .corners::before,
+  .corners::after,
+  .corners > .c1,
+  .corners > .c2 {
+    content: '';
+    position: absolute;
+    width: 8px;
+    height: 8px;
+    border-color: hsl(var(--foreground));
+    border-style: solid;
+    border-width: 0;
+  }
+  .corners::before {
+    top: -1px;
+    left: -1px;
+    border-top-width: 1px;
+    border-left-width: 1px;
+  }
+  .corners::after {
+    top: -1px;
+    right: -1px;
+    border-top-width: 1px;
+    border-right-width: 1px;
+  }
+  .corners > .c1 {
+    bottom: -1px;
+    left: -1px;
+    border-bottom-width: 1px;
+    border-left-width: 1px;
+  }
+  .corners > .c2 {
+    bottom: -1px;
+    right: -1px;
+    border-bottom-width: 1px;
+    border-right-width: 1px;
   }
 }

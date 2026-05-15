@@ -2,7 +2,7 @@ import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 
-const COLORS = ['#6366f1', '#22c55e', '#f59e0b', '#ef4444', '#0ea5e9', '#a855f7', '#ec4899', '#14b8a6'];
+const COLORS = ['#1A4DFF', '#0A0F2C', '#5B7CFA', '#9CA3AF', '#3B5BDB', '#6B7280', '#1E40AF', '#4B5563'];
 
 export function AnalyticsDashboard({ analytics, live }) {
   if (!analytics) return <p className="text-sm text-muted-foreground">No data yet.</p>;
