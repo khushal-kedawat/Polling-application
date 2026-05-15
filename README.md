@@ -168,7 +168,7 @@ If you'd rather create resources by hand:
 
 - **Postgres** — Render → New → PostgreSQL (free plan). Note the *Internal Database URL*.
 - **Web Service** — Render → New → Web Service, point at the repo.
-  - Build command: `npm install --prefix server && npm install --prefix client && npm run build --prefix client`
+  - Build command: `npm install --prefix server && npm install --prefix client --include=dev && npm run build --prefix client` *(— `--include=dev` is needed because Render sets `NODE_ENV=production` during build, which would otherwise skip Vite)*
   - Start command: `node server/src/server.js`
   - Health check path: `/api/health`
   - Environment variables:
