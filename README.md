@@ -1,219 +1,290 @@
-# Pollit — Live Polling Platform
+# Pollit
 
-Full-stack polling app where users create single-choice polls, share a public link, and watch responses arrive in real time. Built for the hackathon.
+**Polling, made elegant.** A full-stack platform for building single-choice polls, sharing them via public link, and watching responses arrive in real time.
 
-## Stack
+> 🔗 **Live demo:** [pollit-v2fa.onrender.com](https://pollit-v2fa.onrender.com)
+> 📦 **Repository:** [khushal-kedawat/Polling-application](https://github.com/khushal-kedawat/Polling-application)
 
-- **Frontend:** React (Vite), Tailwind CSS, shadcn-style primitives (Radix UI), `react-hook-form` + Zod, Recharts, `socket.io-client`.
-- **Backend:** Node.js, Express, Socket.io, Drizzle ORM, PostgreSQL, JWT auth, bcrypt.
-- **Language:** JavaScript everywhere (ESM).
+---
 
-## Features
+## Highlights
 
-- Email + password auth with JWT (bearer token in `localStorage`).
-- Authenticated users can create polls with multiple questions and 2–20 options each, mark any question required/optional, choose response mode (`anonymous` / `authenticated`), and set an `expiresAt` deadline.
-- Public shareable link `/p/:slug`. Respondents see a clean form; mandatory questions are validated on **both** frontend and backend; optional ones can be left blank.
-- Polls auto-close at `expiresAt` — submissions after the deadline return `410 Gone` and the public page shows a "closed" message.
-- **Real-time:** every response triggers a `poll:analytics` broadcast over Socket.io to a `poll:{id}` room. Creator's dashboard updates live; once the creator publishes, the public page also reacts to live updates and `poll:published`.
-- One-response-per-user enforced for authenticated mode (DB unique partial index). For anonymous polls, a per-browser nanoid token prevents accidental double-submits.
-- **Publish results:** clicking *Publish* sets `is_published = true`; the public link now shows bar-chart results (recharts) instead of the form.
-- Analytics REST endpoint and an aggregation service shared with the socket emitter — single source of truth.
+- 🔐 **Auth-gated creation, public responses.** JWT-protected dashboard for creators; anonymous or authenticated response modes per poll.
+- ⚡ **Real-time analytics.** Every submission streams to the creator dashboard over Socket.io rooms — no polling, no refresh.
+- ⏳ **Auto-expiry.** Polls close at a creator-set deadline; late submissions return `410 Gone` server-side.
+- 📢 **Publish results.** One click flips the public link from a response form to a final report — bar charts and counts visible to anyone.
+- 🧪 **Validation, both sides.** Required questions enforced by Zod on the client and the server. Unique partial indexes prevent double-submits.
+- 🐳 **Local Postgres in Docker.** One-command database setup for development.
 
-## Repo Layout
+---
+
+## Tech Stack
+
+| Layer | Tools |
+|---|---|
+| **Frontend** | React 18, Vite, Tailwind CSS, shadcn-style primitives (Radix UI), React Hook Form + Zod, Recharts, Socket.io Client |
+| **Backend** | Node.js (ESM), Express, Socket.io, Drizzle ORM, JWT, bcryptjs |
+| **Database** | PostgreSQL 16 |
+| **Tooling** | Drizzle Kit (migrations), Docker Compose, concurrently |
+| **Deployment** | Render (web service + managed Postgres) |
+
+---
+
+## Architecture
 
 ```
-polling-app/
-├── client/             # Vite + React SPA
-├── server/             # Express API + Socket.io
-├── docker-compose.yml  # Postgres container
-└── package.json        # root scripts (concurrently)
+┌─────────────────────────┐         ┌──────────────────────────────┐
+│   React SPA (Vite)      │  HTTP   │   Express + Socket.io        │
+│   - Auth context        │ ──────► │   - /api/auth                │
+│   - React Router        │         │   - /api/polls (protected)   │
+│   - Live poll UI        │   WS    │   - /api/p/:slug (public)    │
+│                         │ ◄─────► │   - /socket.io (live updates)│
+└─────────────────────────┘         └─────────────┬────────────────┘
+                                                  │ Drizzle ORM
+                                                  ▼
+                                       ┌──────────────────────┐
+                                       │   PostgreSQL         │
+                                       │   users · polls      │
+                                       │   questions · options│
+                                       │   responses · answers│
+                                       └──────────────────────┘
 ```
 
-## Prerequisites
+In **production**, Express serves the built React bundle from the same origin — one URL, zero CORS, WebSockets on the same host.
 
-- Node.js ≥ 20
-- Docker + Docker Compose (Postgres runs in a container)
-- npm
+---
 
-## First-time setup
+## Quick Start
+
+### Prerequisites
+
+- **Node.js ≥ 20**
+- **Docker** + **Docker Compose** (Postgres runs in a container)
+- **npm**
+
+### Setup
 
 ```bash
 # 1. Install all workspaces
 npm run install:all
 
-# 2. Create envs
+# 2. Create env files
 cp server/.env.example server/.env
 cp client/.env.example client/.env
-# edit server/.env if you want to change DATABASE_URL / JWT_SECRET
-# (defaults in .env.example match the Postgres container below)
 
-# 3. Start Postgres (Docker)
+# 3. Start Postgres
 npm run db:up
 
-# 4. Generate + apply Drizzle migrations
+# 4. Generate + apply migrations
 npm run db:generate
 npm run db:migrate
-```
 
-### Postgres (Docker) commands
-
-| Script | Purpose |
-|---|---|
-| `npm run db:up` | Start Postgres in the background (`docker compose up -d postgres`) |
-| `npm run db:down` | Stop Postgres (data preserved in the named volume) |
-| `npm run db:logs` | Tail the container logs |
-| `npm run db:reset` | Stop, **wipe the volume**, and start fresh — useful when iterating on schema |
-
-Default credentials (set in `docker-compose.yml`):
-
-- host `localhost`, port `5433` (mapped to container's 5432 to avoid clashing with a local Postgres on 5432)
-- user `postgres`, password `postgres`, database `polling`
-- connection string: `postgres://postgres:postgres@localhost:5433/polling`
-
-## Run dev
-
-```bash
+# 5. Run dev (API on :4000, client on :5173)
 npm run dev
 ```
 
-- API: http://localhost:4000
-- Web: http://localhost:5173
-- Socket.io is auto-proxied through Vite during dev.
+Open [localhost:5173](http://localhost:5173).
+
+### Postgres helpers
+
+| Script | What it does |
+|---|---|
+| `npm run db:up` | Start Postgres container |
+| `npm run db:down` | Stop container (data preserved) |
+| `npm run db:logs` | Tail container logs |
+| `npm run db:reset` | Stop, wipe volume, restart fresh |
+
+Default DB credentials (mapped to host port `5433` to avoid clashes):
+
+```
+postgres://postgres:postgres@localhost:5433/polling
+```
+
+---
+
+## Project Structure
+
+```
+polling-app/
+├── client/                       # Vite + React SPA
+│   ├── src/
+│   │   ├── components/           # UI primitives + composite components
+│   │   ├── pages/                # Route-level components
+│   │   ├── context/              # AuthContext
+│   │   ├── hooks/                # useAuth, usePollSocket
+│   │   └── lib/                  # api, socket, validators
+│   └── tailwind.config.js
+├── server/                       # Express API + Socket.io
+│   ├── src/
+│   │   ├── db/                   # Drizzle schema + migrations runner
+│   │   ├── routes/               # Express routers
+│   │   ├── controllers/          # Route handlers
+│   │   ├── middleware/           # auth, validation, error handler
+│   │   ├── validators/           # Zod schemas
+│   │   ├── services/             # analytics aggregation
+│   │   ├── sockets/              # Socket.io setup
+│   │   └── utils/                # jwt, bcrypt, slug
+│   └── drizzle/                  # Generated SQL migrations
+├── docker-compose.yml            # Postgres container
+├── render.yaml                   # Render Blueprint
+└── package.json                  # Root scripts (concurrently)
+```
+
+---
 
 ## Environment Variables
 
 ### `server/.env`
 
-| Var | Purpose |
-|---|---|
-| `DATABASE_URL` | Postgres connection string |
-| `JWT_SECRET` | Long random string for HS256 signing |
-| `PORT` | API port (default 4000) |
-| `CLIENT_ORIGIN` | CORS origin for the frontend (default http://localhost:5173) |
-| `DATABASE_SSL` | Set to `true` if your host requires SSL (e.g. Render, Neon) |
+| Variable | Required | Default | Notes |
+|---|---|---|---|
+| `DATABASE_URL` | ✅ | — | Postgres connection string |
+| `JWT_SECRET` | ✅ | — | Long random string for HS256 signing |
+| `PORT` | — | `4000` | API port |
+| `CLIENT_ORIGIN` | — | `http://localhost:5173` | CORS origin |
+| `DATABASE_SSL` | — | — | Set `true` for hosted Postgres (Render, Neon, etc.) |
+| `AUTO_MIGRATE` | — | — | When `true` *and* `NODE_ENV=production`, runs migrations on boot |
+| `NODE_ENV` | — | — | `production` triggers static serving + auto-migrate |
 
 ### `client/.env`
 
-| Var | Purpose |
-|---|---|
-| `VITE_API_URL` | Origin of the API (default http://localhost:4000) |
-| `VITE_SOCKET_URL` | Origin of the Socket.io server (usually same as API) |
+| Variable | Required | Default | Notes |
+|---|---|---|---|
+| `VITE_API_URL` | — | same-origin | Override only if API is on a different host |
+| `VITE_SOCKET_URL` | — | same-origin | Override only if Socket.io is on a different host |
 
-## API Surface
+---
 
-All under `/api`. Errors: `{ error, code?, details? }`.
+## API Reference
+
+All endpoints live under `/api`. Errors return `{ error, code?, details? }`.
 
 ### Auth
-- `POST /auth/register` `{name, email, password}` → `{user, token}`
-- `POST /auth/login` `{email, password}` → `{user, token}`
-- `GET /auth/me` (Bearer) → `{user}`
 
-### Creator (Bearer token required)
-- `GET /polls`
-- `POST /polls` — create with nested questions/options
-- `GET /polls/:id`
-- `PATCH /polls/:id`
-- `DELETE /polls/:id`
-- `POST /polls/:id/publish`
-- `GET /polls/:id/analytics`
+| Method | Path | Auth | Body |
+|---|---|---|---|
+| `POST` | `/auth/register` | — | `{ name, email, password }` → `{ user, token }` |
+| `POST` | `/auth/login` | — | `{ email, password }` → `{ user, token }` |
+| `GET`  | `/auth/me` | Bearer | → `{ user }` |
 
-### Public
-- `GET /p/:slug` — returns poll + `state` (`open` / `expired` / `published`); includes analytics when `published`.
-- `POST /p/:slug/responses` `{ respondentToken?, answers: [{questionId, selectedOptionId?}] }`
+### Creator routes *(Bearer token required)*
 
-## Socket.io Protocol
+| Method | Path | Purpose |
+|---|---|---|
+| `GET`    | `/polls` | List the caller's polls |
+| `POST`   | `/polls` | Create poll with nested questions and options |
+| `GET`    | `/polls/:id` | Full poll detail (creator view) |
+| `PATCH`  | `/polls/:id` | Update title / description / expiry / mode |
+| `DELETE` | `/polls/:id` | Delete poll + cascade |
+| `POST`   | `/polls/:id/publish` | Make results public |
+| `GET`    | `/polls/:id/analytics` | Aggregated counts |
 
-- Client connects to the server origin with optional `auth: { token }`.
-- Emits `join_poll` `{pollId, asCreator}`; if `asCreator`, server verifies the JWT matches the poll owner.
-- Server emits:
-  - `poll:analytics` after each response (broadcast to the room).
-  - `poll:published` when the creator publishes.
-- Client emits `leave_poll` `{pollId}` on unmount.
+### Public routes
+
+| Method | Path | Behavior |
+|---|---|---|
+| `GET`  | `/p/:slug` | Returns poll + `state` (`open` / `expired` / `published`). Includes analytics when published. |
+| `POST` | `/p/:slug/responses` | `{ respondentToken?, answers: [{questionId, selectedOptionId?}] }` |
+
+---
 
 ## Database Schema
 
-`users`, `polls`, `questions`, `options`, `responses`, `answers`. See [server/src/db/schema.js](server/src/db/schema.js).
+See [server/src/db/schema.js](server/src/db/schema.js).
 
-- One response = one row in `responses` (a submission), plus N rows in `answers` (one per question, including skipped optionals as a row with `selected_option_id = NULL`).
-- Partial unique indexes on `responses(poll_id, respondent_user_id)` and `(poll_id, respondent_token)` enforce single-submit per identity.
+| Table | Purpose |
+|---|---|
+| `users` | Account records (email, bcrypt hash) |
+| `polls` | Poll metadata + `share_slug`, `expires_at`, `response_mode`, `is_published` |
+| `questions` | Belongs to poll; `is_required`, `order_index` |
+| `options` | Belongs to question; `text`, `order_index` |
+| `responses` | One row per submission; nullable `respondent_user_id` or `respondent_token` |
+| `answers` | One row per question per submission; nullable `selected_option_id` for skipped optionals |
 
-## Validation Rules
+**Key constraints:**
 
-- Poll: ≥1 question, each question ≥2 options.
-- `expiresAt`: must be in the future at creation time.
-- Required questions: backend rejects submissions with `code: REQUIRED_MISSING` if missing.
-- Authenticated-only polls: anonymous attempts return `401`.
+- Partial unique index on `responses(poll_id, respondent_user_id)` — one response per authenticated user.
+- Partial unique index on `responses(poll_id, respondent_token)` — soft dedupe for anonymous responders.
+- All foreign keys cascade on delete.
 
-## Deployment — Render (one-click via Blueprint)
+---
+
+## Socket.io Protocol
+
+- **Connect:** Client connects to the server origin with `auth: { token }` (optional, only needed for creator rooms).
+- **Join a poll room:** `socket.emit('join_poll', { pollId, asCreator })`. The server verifies the JWT against the poll's `creator_id` if `asCreator` is `true`.
+
+**Server emits:**
+
+| Event | Payload | Triggered by |
+|---|---|---|
+| `poll:analytics` | `{ pollId, totalResponses, questions: [...] }` | New response submission |
+| `poll:published` | `{ pollId }` | Creator clicks **Publish** |
+
+Client emits `leave_poll` on unmount.
+
+---
+
+## Deployment — Render
 
 This repo ships a [`render.yaml`](render.yaml) Blueprint that provisions:
 
-- A **Web Service** running Express (serves both `/api/*` and the built React SPA — single origin, no CORS to manage)
-- A managed **Postgres** database, auto-wired into `DATABASE_URL`
+- A **Web Service** running Express (serves API + built SPA on the same origin)
+- A managed **Postgres** instance, auto-wired into `DATABASE_URL`
 
-Migrations run automatically on every deploy (`AUTO_MIGRATE=true` in [server.js](server/src/server.js)).
+Migrations run automatically on every boot (`AUTO_MIGRATE=true`).
 
 ### One-click deploy
 
-1. Push this repo to a public GitHub repository.
-2. Sign in at [dashboard.render.com](https://dashboard.render.com).
-3. Click **New → Blueprint** and point it at your GitHub repo. Render will read `render.yaml` and propose the service + database.
-4. Click **Apply**. The first build takes ~3–4 minutes (installs deps for both packages, builds the client bundle, then starts the server).
-5. After the first deploy succeeds, open the service in Render, copy its URL (e.g. `https://pollit.onrender.com`), and set the `CLIENT_ORIGIN` env var on the web service to that exact URL. Click **Save changes** → triggers a quick redeploy.
-6. Visit the URL — register an account, create a poll, share the `/p/:slug` link.
+1. Push the repo to GitHub.
+2. Sign in to [Render](https://dashboard.render.com) → **New** → **Blueprint**.
+3. Point it at the GitHub repo → click **Apply**.
+4. After the first deploy, copy the service URL and set the `CLIENT_ORIGIN` env var on the web service to that URL → save (~30s redeploy).
 
-### Manual setup (if you skip the blueprint)
+### Manual setup
 
-If you'd rather create resources by hand:
+If you'd rather wire it by hand, see the table below.
 
-- **Postgres** — Render → New → PostgreSQL (free plan). Note the *Internal Database URL*.
-- **Web Service** — Render → New → Web Service, point at the repo.
-  - Build command: `npm install --prefix server && npm install --prefix client --include=dev && npm run build --prefix client` *(— `--include=dev` is needed because Render sets `NODE_ENV=production` during build, which would otherwise skip Vite)*
-  - Start command: `node server/src/server.js`
-  - Health check path: `/api/health`
-  - Environment variables:
-    | Var | Value |
-    |---|---|
-    | `NODE_ENV` | `production` |
-    | `AUTO_MIGRATE` | `true` |
-    | `DATABASE_URL` | *Internal Database URL* from your Postgres |
-    | `DATABASE_SSL` | `true` |
-    | `JWT_SECRET` | Any long random string |
-    | `CLIENT_ORIGIN` | The service URL (set after first deploy) |
+| Setting | Value |
+|---|---|
+| Build command | `npm install --prefix server && npm install --prefix client --include=dev && npm run build --prefix client` |
+| Start command | `node server/src/server.js` |
+| Health check path | `/api/health` |
 
-### How the unified deploy works
+Required env vars: `NODE_ENV=production`, `AUTO_MIGRATE=true`, `DATABASE_URL`, `DATABASE_SSL=true`, `JWT_SECRET`, `CLIENT_ORIGIN`.
 
-In production (`NODE_ENV=production`), Express serves [client/dist](client/) as static assets and falls back to `index.html` for any non-`/api/*` route — that handles React Router client-side routes (`/dashboard`, `/p/:slug`, …). The frontend hits `/api/*` and `/socket.io/*` on the same origin, so no `VITE_API_URL` / `VITE_SOCKET_URL` need to be set at build time.
+> **Render gotchas**
+> - Free web services sleep after 15 min idle (first request takes ~30s to wake).
+> - Free Postgres deletes after 90 days — upgrade for longer-lived projects.
+> - `--include=dev` in the build command is required because Render sets `NODE_ENV=production`, which would otherwise skip Vite.
 
-### Render gotchas
-
-- **Free Web Services sleep after 15 min of inactivity.** First request after sleep takes ~30s to spin up. Upgrade to a paid plan to keep it always-on.
-- **Free Postgres expires after 90 days** and is deleted. For longer-lived submissions, upgrade or migrate data periodically.
-- WebSockets work out of the box on Render web services — no extra config.
-
-### Other platforms
-
-- **Railway / Fly.io** — same unified-server shape works. Use the same build/start commands; set `NODE_ENV=production`, `AUTO_MIGRATE=true`, `DATABASE_URL`, `JWT_SECRET`. Set `DATABASE_SSL` based on the provider.
-- **Vercel (FE) + Render (BE+DB)** — drop the unified server, build the client with `VITE_API_URL` / `VITE_SOCKET_URL` pointed at the Render backend URL, and set `CLIENT_ORIGIN` on the backend to the Vercel URL.
+---
 
 ## Verification (manual E2E)
 
-1. Register user A and (in another browser) user B.
-2. As A, create a poll with 3 questions (Q1, Q2 required, Q3 optional), 2-minute expiry, **anonymous** mode.
-3. Open `/p/:slug` in incognito and attempt to submit with Q1 blank — frontend blocks and backend would reject too.
-4. Answer Q1, Q2, skip Q3, submit — success.
-5. Open A's poll detail page; submit another anonymous response in a third tab — analytics tick up live.
-6. Create a 2nd poll with **authenticated** mode; anonymous submit returns 401; B submits successfully; B submitting again returns 409.
-7. Wait past `expiresAt` (or use a 30-second expiry) — public submit returns 410 and the page shows "closed".
-8. Click **Publish** on poll #1 → the public link now renders the bar-chart results page.
+After running `npm run dev` locally:
 
-## Out of Scope (known)
+1. **Auth** — register two users (A in one browser, B in incognito).
+2. **Create** — as A, build a poll with three questions (two required, one optional), 2-minute expiry, **anonymous** mode.
+3. **Respond** — open `/p/:slug` in incognito; try submitting with a required question blank → frontend blocks. Answer required ones, skip the optional, submit → success.
+4. **Real-time** — keep A's `/dashboard/polls/:id` open; submit another response in a third tab → analytics counter ticks up live.
+5. **Auth mode** — create a second poll with **authenticated** mode. Anonymous submit returns `401`. B signs in, submits → success. B resubmits → `409`.
+6. **Expiry** — wait past `expires_at` (or use a 30s expiry); submit returns `410`, public page shows "closed".
+7. **Publish** — click **Publish** on poll #1 → the public link now renders bar-chart results instead of the form.
 
-- Multi-select / free-text answers (spec is single-choice only).
-- Email verification / password reset.
-- Once a response exists, questions/options are immutable (PATCH-poll returns 409). Title/description/expiry/mode are editable.
-- No application-level rate limiting — for production add an Express rate limiter and CAPTCHA.
+---
+
+## Roadmap
+
+Out of scope for this hackathon submission:
+
+- Multi-select / free-text question types
+- Email verification + password reset
+- In-place question editing after responses exist (current behavior: locked, returns `409`)
+- Server-side rate limiting + CAPTCHA
+
+---
 
 ## License
 
-MIT — see this file's header in each source file for attribution. Hackathon submission.
+MIT. Built for the hackathon.
